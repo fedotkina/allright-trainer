@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Тренажер дзвінків AllRight</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FAF9FD;--surface:#fff;--ink:#1D1630;--muted:#675F7C;--line:#E4DEF0;
+  --violet:#9A00FF;--violet-ink:#6C00B4;--violet-soft:#F1E6FF;
+  --call:#1E0F38;--call-ink:#F3ECFF;--call-muted:#B7A8D6;--bad:#BE2D48;
+  --font:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --display:"Unbounded","Golos Text",system-ui,sans-serif;
+  color-scheme:light;box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#120D1D;--surface:#1B1529;--ink:#EEE9F8;--muted:#A79FBD;--line:#2F2742;
+  --violet:#B54DFF;--violet-ink:#D29BFF;--violet-soft:#2B1A45;--call:#0B0614;--bad:#FF7A93;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#120D1D;--surface:#1B1529;--ink:#EEE9F8;--muted:#A79FBD;--line:#2F2742;
+  --violet:#B54DFF;--violet-ink:#D29BFF;--violet-soft:#2B1A45;--call:#0B0614;--bad:#FF7A93;color-scheme:dark}
+*,*::before,*::after{box-sizing:inherit}
+html,body{margin:0;height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto;padding:32px clamp(16px,4vw,40px) 56px}
+header.top{display:flex;align-items:baseline;gap:12px;margin-bottom:26px}
+.brand{font-family:var(--display);font-weight:700;font-size:18px}
+.brand span{color:var(--muted);font-family:var(--font);font-weight:500;font-size:13px;margin-left:8px}
+h1{font-family:var(--display);font-weight:700;font-size:26px;line-height:1.2;margin:0 0 6px;letter-spacing:-.015em}
+.lede{color:var(--muted);margin:0 0 24px;max-width:64ch}
+.grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:26px}
+.pick{display:flex;flex-direction:column;gap:8px}
+.pickitem{display:grid;grid-template-columns:auto 1fr;gap:12px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px;cursor:pointer}
+.pickitem:has(input:checked){border-color:var(--violet);box-shadow:inset 0 0 0 1px var(--violet)}
+.pickitem input{margin-top:4px;accent-color:var(--violet)}
+.pickitem .g{font-size:13.5px;color:var(--muted);margin-top:4px}
+.opts{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:16px 18px;align-self:start}
+label.fl{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:10px 0 4px}
+.inp{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:9px 11px}
+.btn{border:1px solid var(--line);background:var(--surface);padding:10px 16px;border-radius:6px;cursor:pointer;font-weight:600}
+.btn.primary{background:var(--violet);border-color:var(--violet);color:#fff;width:100%;margin-top:16px}
+.btn.primary:hover{background:var(--violet-ink)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.check{display:flex;gap:8px;align-items:center;margin-top:12px;font-size:14px;color:var(--muted)}
+.check input{accent-color:var(--violet)}
+.note{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 16px;color:var(--muted);max-width:70ch}
+.err{color:var(--bad)}
+.call{display:grid;grid-template-columns:320px minmax(0,1fr);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-height:calc(100dvh - 160px)}
+.side{background:var(--call);color:var(--call-ink);padding:26px 24px;display:flex;flex-direction:column;gap:18px}
+.lbl{font-size:12.5px;color:var(--call-muted);font-weight:500}
+.mom{font-family:var(--display);font-weight:700;font-size:22px;line-height:1.2}
+.live{display:flex;align-items:center;gap:12px;font-family:var(--display);font-size:30px;font-weight:500;font-variant-numeric:tabular-nums}
+.orb{width:14px;height:14px;border-radius:50%;background:#7B6A9C}
+.orb.listening{background:#3BE38F;animation:pulse 1.8s infinite}
+.orb.speaking{background:#C07CFF;animation:pulse 0.9s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(192,124,255,.55)}70%{box-shadow:0 0 0 12px rgba(192,124,255,0)}100%{box-shadow:0 0 0 0 rgba(192,124,255,0)}}
+@media (prefers-reduced-motion:reduce){.orb{animation:none!important}}
+.state{font-size:14px;color:var(--call-muted)}
+.guid{font-size:14px;line-height:1.55;white-space:pre-wrap;opacity:.92}
+.endbtn{margin-top:auto;border:0;border-radius:999px;background:#E5334F;color:#fff;font-weight:600;padding:14px 18px;cursor:pointer;font-size:15px}
+.endbtn:hover{background:#C9213C}
+.main{background:var(--surface);padding:24px clamp(16px,3vw,32px);overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.turn{display:grid;grid-template-columns:76px 1fr;gap:12px;max-width:76ch}
+.turn .sp{font-size:12.5px;font-weight:600;color:var(--muted)}
+.turn.agent .sp{color:var(--violet-ink)}
+.hidden-tr{color:var(--muted);max-width:56ch}
+.done h1{margin-top:8px}
+@media (max-width:860px){.grid,.call{grid-template-columns:1fr}.side{padding:18px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top"><div class="brand">Тренажер дзвінків<span>AllRight</span></div></header>
+  <main id="app"><p class="lede">Завантаження…</p></main>
+</div>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.27.0/dist/lib.iife.js"></script>
+<script>
+"use strict";
+const CFG=window.TRAINER_CONFIG||{};
+const LANGS={ua:"Українська",ro:"Română",pl:"Polski",it:"Italiano",en:"English"};
+const T={pickScn:"Оберіть сценарій",lang:"Мова",who:"Ваше ім’я",whoPh:"Ім’я та прізвище",showTr:"Показувати текст розмови",start:"Зателефонувати",
+  lede:"Оберіть сценарій і зателефонуйте мамі. Говоріть голосом, як у справжньому дзвінку. Розбір дзвінка надішле супервайзер.",
+  known:"Що ви знаєте",end:"Завершити дзвінок",listening:"Мама слухає",speaking:"Мама говорить",connecting:"З’єднання…",
+  trHidden:"Текст розмови приховано. Говоріть так, як у звичайному дзвінку.",
+  doneTitle:"Дзвінок завершено",doneText:"Запис збережено. Супервайзер отримає розмову й надішле розбір. Тривалість:",again:"Новий дзвінок",
+  mic:"Немає доступу до мікрофона. Дозвольте його в налаштуваннях браузера й спробуйте ще раз.",
+  noCfg:"Тренажер ще не налаштований: немає ID агента. Зверніться до супервайзера.",
+  noScn:"Не вдалося завантажити сценарії. Зверніться до супервайзера.",
+  needName:"Вкажіть ім’я, щоб супервайзер знав, чий це дзвінок.",
+  mom:"Мама",admin:"Ви"};
+const S={scns:[],sel:null,lang:null,who:"",showTr:true,conv:null,turns:[],start:0,mode:"",status:"",err:"",convId:""};
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}}};
+const fmt=s=>String(Math.floor(s/60)).padStart(2,"0")+":"+String(Math.floor(s%60)).padStart(2,"0");
+function decode(b64,key){const bin=atob(b64.trim());const kb=new TextEncoder().encode(key);const out=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i)^kb[i%kb.length];return JSON.parse(new TextDecoder().decode(out))}
+function momName(g){const m=String(g||"").match(/^([^,.]+)/);return m?m[1].trim():T.mom}
+
+(async function boot(){
+  S.who=store.get("trainer.who")||"";S.showTr=store.get("trainer.showTr")!=="0";
+  if(!CFG.agentId||/X{6,}/.test(CFG.agentId))return fail(T.noCfg);
+  const sources=[];if(CFG.scenariosUrl&&!/XXXX/.test(CFG.scenariosUrl))sources.push(CFG.scenariosUrl);sources.push((CFG.scenariosFile||"scenarios.dat")+"?v="+Date.now());
+  for(const url of sources){try{const r=await fetch(url);if(!r.ok)continue;const txt=(await r.text()).trim();if(!txt)continue;const data=decode(txt,CFG.scenariosKey||"");S.scns=(data.scenarios||[]).sort((a,b)=>(a.order??99)-(b.order??99));if(S.scns.length)break}catch{}}
+  if(!S.scns.length)return fail(T.noScn);
+  S.sel=S.scns[0].id;S.lang=Object.keys(S.scns[0].langs)[0];renderSetup();
+})();
+function fail(msg){$("#app").innerHTML=`<div class="note err">${esc(msg)}</div>`}
+function cur(){return S.scns.find(s=>s.id===S.sel)}
+function renderSetup(){
+  const sc=cur();if(!sc.langs[S.lang])S.lang=Object.keys(sc.langs)[0];
+  $("#app").innerHTML=`<h1>${T.pickScn}</h1><p class="lede">${T.lede}</p>
+  <div class="grid"><div class="pick" role="radiogroup" aria-label="${T.pickScn}">${S.scns.map(s=>{const l=s.langs[S.lang]?S.lang:Object.keys(s.langs)[0];return`<label class="pickitem"><input type="radio" name="scn" value="${esc(s.id)}" ${s.id===S.sel?"checked":""}><span><b>${esc(s.langs[l].name)}</b><div class="g">${esc(s.langs[l].guidelines)}</div></span></label>`}).join("")}</div>
+  <div class="opts"><label class="fl" for="lang">${T.lang}</label><select class="inp" id="lang">${Object.keys(sc.langs).map(l=>`<option value="${l}" ${l===S.lang?"selected":""}>${LANGS[l]||l}</option>`).join("")}</select>
+   <label class="fl" for="who">${T.who}</label><input class="inp" id="who" value="${esc(S.who)}" placeholder="${T.whoPh}" autocomplete="name">
+   <label class="check"><input type="checkbox" id="showTr" ${S.showTr?"checked":""}>${T.showTr}</label>
+   <button class="btn primary" id="start">${T.start}</button>
+   ${S.err?`<p class="err" style="margin:12px 0 0">${esc(S.err)}</p>`:""}</div></div>`;
+}
+document.addEventListener("change",e=>{
+  if(e.target.name==="scn"){S.sel=e.target.value;renderSetup()}
+  if(e.target.id==="lang"){S.lang=e.target.value;renderSetup()}
+  if(e.target.id==="showTr"){S.showTr=e.target.checked;store.set("trainer.showTr",S.showTr?"1":"0")}
+});
+document.addEventListener("input",e=>{if(e.target.id==="who"){S.who=e.target.value;store.set("trainer.who",S.who)}});
+document.addEventListener("click",e=>{
+  if(e.target.closest("#start"))startCall();
+  if(e.target.closest("#end"))endCall();
+  if(e.target.closest("#again")){S.err="";renderSetup()}
+});
+
+async function startCall(){
+  S.err="";if(!S.who.trim()){S.err=T.needName;return renderSetup()}
+  const sc=cur(),d=sc.langs[S.lang];
+  try{await navigator.mediaDevices.getUserMedia({audio:true})}catch{S.err=T.mic;return renderSetup()}
+  S.turns=[];S.start=Date.now();S.mode="";S.status="connecting";S.convId="";renderCall();
+  const overrides={agent:{prompt:{prompt:d.prompt},firstMessage:d.firstMessage,language:d.language}};
+  const voice=(CFG.voices||{})[S.lang];if(voice)overrides.tts={voiceId:voice};
+  try{
+    S.conv=await ElevenLabsClient.Conversation.startSession({
+      agentId:CFG.agentId,connectionType:"webrtc",overrides,userId:S.who.trim(),
+      dynamicVariables:{admin_name:S.who.trim(),scenario_id:sc.id,scenario_lang:S.lang,scenario_dept:sc.dept||"sales"},
+      onConnect:({conversationId})=>{S.convId=conversationId;S.status="connected";S.start=Date.now();renderCall()},
+      onDisconnect:()=>{if(S.conv){S.conv=null;finish()}},
+      onError:(msg)=>{S.err=String(msg||"");renderCall()},
+      onModeChange:({mode})=>{S.mode=mode;paintState()},
+      onStatusChange:({status})=>{S.status=status;paintState()},
+      onMessage:(m)=>{S.turns.push({role:m.role||(m.source==="ai"?"agent":"user"),text:m.message});paintTranscript()}
+    });
+  }catch(err){S.conv=null;S.err=(err&&err.message)||String(err);renderSetup()}
+}
+let timer=null;
+function renderCall(){
+  const sc=cur(),d=sc.langs[S.lang];
+  $("#app").innerHTML=`<div class="call"><aside class="side">
+    <div><div class="lbl">${esc(d.name)}</div><div class="mom" style="margin-top:6px">${esc(momName(d.guidelines))}</div></div>
+    <div class="live"><span class="orb" id="orb"></span><span id="tm">00:00</span></div><div class="state" id="state"></div>
+    <div><div class="lbl">${T.known}</div><div class="guid">${esc(d.guidelines)}</div></div>
+    ${S.err?`<div class="err" style="color:#FF9BAE">${esc(S.err)}</div>`:""}
+    <button class="endbtn" id="end">${T.end}</button></aside>
+    <section class="main" id="tr" aria-live="polite"></section></div>`;
+  clearInterval(timer);timer=setInterval(()=>{const t=$("#tm");if(t)t.textContent=fmt((Date.now()-S.start)/1000)},500);
+  paintState();paintTranscript();
+}
+function paintState(){const o=$("#orb"),s=$("#state");if(!o)return;o.className="orb "+(S.status==="connected"?S.mode:"");s.textContent=S.status!=="connected"?T.connecting:S.mode==="speaking"?T.speaking:T.listening}
+function paintTranscript(){const tr=$("#tr");if(!tr)return;const name=momName(cur().langs[S.lang].guidelines);
+  tr.innerHTML=S.showTr?S.turns.map(t=>`<div class="turn ${t.role==="agent"?"agent":"user"}"><div class="sp">${t.role==="agent"?esc(name):T.admin}</div><div>${esc(t.text)}</div></div>`).join(""):`<p class="hidden-tr">${T.trHidden}</p>`;
+  tr.scrollTop=tr.scrollHeight}
+async function endCall(){const c=S.conv;S.conv=null;try{await c?.endSession()}catch{}finish()}
+function finish(){clearInterval(timer);const dur=fmt((Date.now()-S.start)/1000);
+  $("#app").innerHTML=`<div class="done"><h1>${T.doneTitle}</h1><p class="lede">${T.doneText} ${dur}.</p>${S.err?`<p class="err">${esc(S.err)}</p>`:""}<button class="btn" id="again">${T.again}</button></div>`}
+</script>
+</body>
+</html>
