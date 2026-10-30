@@ -1,7 +1,7 @@
 // Настройки тренажёра. Заполняет Назар один раз (см. NAZAR.md).
 window.TRAINER_CONFIG = {
   // ID агента ElevenLabs (Agents → агент → ID, начинается с "agent_")
-  agentId: "agent_XXXXXXXXXXXXXXXXXXXXXXXXXX",
+  agentId: "agent_4201m63qnavqeeesr933h0qstae8",
 
   // Голос мамы для каждого языка (Voice ID из ElevenLabs).
   // Если поле пустое, используется голос по умолчанию из настроек агента.
@@ -12,7 +12,7 @@ window.TRAINER_CONFIG = {
     it: "",
     en: "",
     es: "",
-    sk: "",
+    sl: "",
     sr: "",
     he: ""
   },
