@@ -94,6 +94,7 @@ const T={pickScn:"Оберіть сценарій",lang:"Мова",who:"Ваше
   noCfg:"Тренажер ще не налаштований: немає ID агента. Зверніться до супервайзера.",
   noScn:"Не вдалося завантажити сценарії. Зверніться до супервайзера.",
   needName:"Вкажіть ім’я, щоб супервайзер знав, чий це дзвінок.",
+  hungUp:"Мама поклала слухавку.",dropped:"Зʼєднання обірвалося. Технічна причина для супервайзера:",
   mom:"Мама",admin:"Ви"};
 const S={scns:[],sel:null,lang:null,who:"",showTr:true,conv:null,turns:[],start:0,mode:"",status:"",err:"",convId:""};
 const $=s=>document.querySelector(s);
@@ -139,21 +140,24 @@ async function startCall(){
   S.err="";if(!S.who.trim()){S.err=T.needName;return renderSetup()}
   const sc=cur(),d=sc.langs[S.lang];
   try{await navigator.mediaDevices.getUserMedia({audio:true})}catch{S.err=T.mic;return renderSetup()}
-  S.turns=[];S.start=Date.now();S.mode="";S.status="connecting";S.convId="";renderCall();
+  S.turns=[];S.start=Date.now();S.mode="";S.status="connecting";S.convId="";S.disc=null;renderCall();
   const overrides={agent:{prompt:{prompt:d.prompt},firstMessage:d.firstMessage,language:d.language}};
   const voice=(CFG.voices||{})[S.lang];if(voice)overrides.tts={voiceId:voice};
   try{
     S.conv=await ElevenLabsClient.Conversation.startSession({
-      agentId:CFG.agentId,connectionType:"webrtc",overrides,userId:S.who.trim(),
+      agentId:CFG.agentId,connectionType:S.conn||CFG.connectionType||"webrtc",overrides,userId:S.who.trim(),
       dynamicVariables:{admin_name:S.who.trim(),scenario_id:sc.id,scenario_lang:S.lang,scenario_dept:sc.dept||"sales"},
       onConnect:({conversationId})=>{S.convId=conversationId;S.status="connected";S.start=Date.now();renderCall()},
-      onDisconnect:()=>{if(S.conv){S.conv=null;finish()}},
-      onError:(msg)=>{S.err=String(msg||"");renderCall()},
+      onDisconnect:(d)=>{S.disc=d||null;if(S.conv){S.conv=null;
+        const quick=Date.now()-S.start<6000;
+        if(quick&&d&&d.reason==="error"&&(S.conn||CFG.connectionType||"webrtc")==="webrtc"&&!S.retried){S.retried=true;S.conn="websocket";startCall();return}
+        finish()}},
+      onError:(msg,ctx)=>{S.err=String(msg||"");console.error("[trainer] onError",msg,ctx);if(S.conv)renderCall()},
       onModeChange:({mode})=>{S.mode=mode;paintState()},
       onStatusChange:({status})=>{S.status=status;paintState()},
       onMessage:(m)=>{S.turns.push({role:m.role||(m.source==="ai"?"agent":"user"),text:m.message});paintTranscript()}
     });
-  }catch(err){S.conv=null;S.err=(err&&err.message)||String(err);renderSetup()}
+  }catch(err){S.conv=null;S.err=(err&&err.message)||String(err);console.error("[trainer] startSession",err);renderSetup()}
 }
 let timer=null;
 function renderCall(){
@@ -173,8 +177,12 @@ function paintTranscript(){const tr=$("#tr");if(!tr)return;const name=momName(cu
   tr.innerHTML=S.showTr?S.turns.map(t=>`<div class="turn ${t.role==="agent"?"agent":"user"}"><div class="sp">${t.role==="agent"?esc(name):T.admin}</div><div>${esc(t.text)}</div></div>`).join(""):`<p class="hidden-tr">${T.trHidden}</p>`;
   tr.scrollTop=tr.scrollHeight}
 async function endCall(){const c=S.conv;S.conv=null;try{await c?.endSession()}catch{}finish()}
-function finish(){clearInterval(timer);const dur=fmt((Date.now()-S.start)/1000);
-  $("#app").innerHTML=`<div class="done"><h1>${T.doneTitle}</h1><p class="lede">${T.doneText} ${dur}.</p>${S.err?`<p class="err">${esc(S.err)}</p>`:""}<button class="btn" id="again">${T.again}</button></div>`}
+function discText(d){if(!d)return"";if(d.reason==="user")return"";if(d.reason==="agent")return T.hungUp;
+  const parts=[d.message,d.closeReason,d.context&&d.context.reason,d.closeCode&&("code "+d.closeCode)].filter(Boolean);return T.dropped+(parts.length?" "+parts.join(" · "):"")}
+function finish(){clearInterval(timer);const dur=fmt((Date.now()-S.start)/1000);const dt=discText(S.disc);
+  if(S.disc)console.warn("[trainer] disconnect",S.disc);
+  S.conn=null;S.retried=false;
+  $("#app").innerHTML=`<div class="done"><h1>${T.doneTitle}</h1><p class="lede">${T.doneText} ${dur}.</p>${dt?`<p class="${S.disc.reason==="error"?"err":"lede"}">${esc(dt)}</p>`:""}${S.err?`<p class="err">${esc(S.err)}</p>`:""}<button class="btn" id="again">${T.again}</button></div>`}
 </script>
 </body>
 </html>
