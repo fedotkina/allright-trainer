@@ -94,7 +94,7 @@ const T={pickScn:"Оберіть сценарій",lang:"Мова",who:"Ваше
   noCfg:"Тренажер ще не налаштований: немає ID агента. Зверніться до супервайзера.",
   noScn:"Не вдалося завантажити сценарії. Зверніться до супервайзера.",
   needName:"Вкажіть ім’я, щоб супервайзер знав, чий це дзвінок.",
-  hungUp:"Мама поклала слухавку.",dropped:"Зʼєднання обірвалося. Технічна причина для супервайзера:",
+  hungUp:"Мама поклала слухавку.",droppedAtStart:"Агент завершив дзвінок одразу після зʼєднання. Технічна причина для супервайзера:",dropped:"Зʼєднання обірвалося. Технічна причина для супервайзера:",
   mom:"Мама",admin:"Ви"};
 const S={scns:[],sel:null,lang:null,who:"",showTr:true,conv:null,turns:[],start:0,mode:"",status:"",err:"",convId:""};
 const $=s=>document.querySelector(s);
@@ -177,12 +177,15 @@ function paintTranscript(){const tr=$("#tr");if(!tr)return;const name=momName(cu
   tr.innerHTML=S.showTr?S.turns.map(t=>`<div class="turn ${t.role==="agent"?"agent":"user"}"><div class="sp">${t.role==="agent"?esc(name):T.admin}</div><div>${esc(t.text)}</div></div>`).join(""):`<p class="hidden-tr">${T.trHidden}</p>`;
   tr.scrollTop=tr.scrollHeight}
 async function endCall(){const c=S.conv;S.conv=null;try{await c?.endSession()}catch{}finish()}
-function discText(d){if(!d)return"";if(d.reason==="user")return"";if(d.reason==="agent")return T.hungUp;
-  const parts=[d.message,d.closeReason,d.context&&d.context.reason,d.closeCode&&("code "+d.closeCode)].filter(Boolean);return T.dropped+(parts.length?" "+parts.join(" · "):"")}
+function discText(d){if(!d)return"";if(d.reason==="user")return"";
+  const parts=[d.message,d.closeReason,d.context&&d.context.type,d.context&&d.context.reason,d.closeCode&&("code "+d.closeCode)].filter(Boolean);
+  const tech=parts.length?" ("+parts.join(" · ")+")":"";
+  if(d.reason==="agent"){const quick=(Date.now()-S.start)<5000||!S.turns.length;return (quick?T.droppedAtStart:T.hungUp)+tech}
+  return T.dropped+tech}
 function finish(){clearInterval(timer);const dur=fmt((Date.now()-S.start)/1000);const dt=discText(S.disc);
   if(S.disc)console.warn("[trainer] disconnect",S.disc);
   S.conn=null;S.retried=false;
-  $("#app").innerHTML=`<div class="done"><h1>${T.doneTitle}</h1><p class="lede">${T.doneText} ${dur}.</p>${dt?`<p class="${S.disc.reason==="error"?"err":"lede"}">${esc(dt)}</p>`:""}${S.err?`<p class="err">${esc(S.err)}</p>`:""}<button class="btn" id="again">${T.again}</button></div>`}
+  $("#app").innerHTML=`<div class="done"><h1>${T.doneTitle}</h1><p class="lede">${T.doneText} ${dur}.</p>${dt?`<p class="${S.disc.reason==="user"||dt===T.hungUp?"lede":"err"}">${esc(dt)}</p>`:""}${S.err?`<p class="err">${esc(S.err)}</p>`:""}<button class="btn" id="again">${T.again}</button></div>`}
 </script>
 </body>
 </html>
