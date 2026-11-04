@@ -67,6 +67,7 @@
 | Змінна | Що це |
 |---|---|
 | `admin_name` | хто з адмінів телефонував (також передається як `userId`) |
+| `admin_id` | ID співробітника зі списку тренажера |
 | `scenario_id` | ID сценарію, наприклад `hidden-1` |
 | `scenario_lang` | мова сценарію: `ua`, `ro`, `pl`, `it`, `en`, `es`, `sr`, `he` |
 | `scenario_dept` | `sales` або `methodists` |

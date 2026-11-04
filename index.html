@@ -102,7 +102,7 @@ header.top .btn{padding:7px 12px;font-weight:500}
 "use strict";
 const CFG=window.TRAINER_CONFIG||{};
 const LANGS={ua:"Українська",ro:"Română",pl:"Polski",it:"Italiano",en:"English",es:"Español",sr:"Srpski",he:"עברית"};
-const T={pickScn:"Оберіть сценарій",lang:"Мова",who:"Ваше ім’я",whoPh:"Ім’я та прізвище",showTr:"Показувати текст розмови",start:"Зателефонувати",
+const T={pickScn:"Оберіть сценарій",lang:"Мова",who:"Хто телефонує",whoPh:"Ім’я та прізвище",showTr:"Показувати текст розмови",start:"Зателефонувати",
   lede:"Оберіть сценарій і зателефонуйте мамі. Говоріть голосом, як у справжньому дзвінку. Розбір дзвінка надішле супервайзер.",
   known:"Що ви знаєте",end:"Завершити дзвінок",listening:"Мама слухає",speaking:"Мама говорить",connecting:"З’єднання…",
   trHidden:"Текст розмови приховано. Говоріть так, як у звичайному дзвінку.",
@@ -110,14 +110,14 @@ const T={pickScn:"Оберіть сценарій",lang:"Мова",who:"Ваше
   mic:"Немає доступу до мікрофона. Дозвольте його в налаштуваннях браузера й спробуйте ще раз.",
   noCfg:"Тренажер ще не налаштований: немає ID агента. Зверніться до супервайзера.",
   noScn:"Не вдалося завантажити сценарії. Зверніться до супервайзера.",
-  needName:"Вкажіть ім’я, щоб супервайзер знав, чий це дзвінок.",
+  needName:"Вкажіть ім’я, щоб супервайзер знав, чий це дзвінок.",whoPick:"Оберіть себе зі списку",dSales:"Продажі",dMeth:"Методисти",
   hungUp:"Мама поклала слухавку.",droppedAtStart:"Агент завершив дзвінок одразу після зʼєднання. Технічна причина для супервайзера:",dropped:"Зʼєднання обірвалося. Технічна причина для супервайзера:",
   resTitle:"Мої результати",resLede:"Оцінки ваших дзвінків. Оцінка з’являється після того, як супервайзер запустить перевірку, зазвичай протягом дня.",
   resShow:"Показати",resEmpty:"Оцінених дзвінків поки немає. Якщо ви щойно телефонували, загляньте пізніше.",resErr:"Не вдалося завантажити результати. Спробуйте ще раз пізніше.",
   resBack:"← Усі результати",resSummary:"Підсумок",resImprove:"Що зробити інакше",resGood:"Що вдалося",resChecklist:"Чек-лист",resSteps:"Кроки розмови",resObj:"Заперечення",
   resTranscript:"Розшифровка",resReason:"Справжню причину",resFound:"знайшли",resNotFound:"не знайшли",resLoading:"Завантажуємо…",resNote:"Коментарі в оцінці написані російською.",
   mom:"Мама",admin:"Ви"};
-const S={scns:[],sel:null,lang:null,who:"",showTr:true,conv:null,turns:[],start:0,mode:"",status:"",err:"",convId:""};
+const S={people:[],whoId:"",scns:[],sel:null,lang:null,who:"",showTr:true,conv:null,turns:[],start:0,mode:"",status:"",err:"",convId:""};
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}}};
@@ -126,13 +126,18 @@ function decode(b64,key){const bin=atob(b64.trim());const kb=new TextEncoder().e
 function momName(g){const m=String(g||"").match(/^([^,.]+)/);return m?m[1].trim():T.mom}
 
 (async function boot(){
-  S.who=store.get("trainer.who")||"";S.showTr=store.get("trainer.showTr")!=="0";
+  S.who=store.get("trainer.who")||"";S.whoId=store.get("trainer.whoId")||"";S.showTr=store.get("trainer.showTr")!=="0";
   if(!CFG.agentId||/X{6,}/.test(CFG.agentId))return fail(T.noCfg);
   const sources=[];if(CFG.scenariosUrl&&!/XXXX/.test(CFG.scenariosUrl))sources.push(CFG.scenariosUrl);sources.push((CFG.scenariosFile||"scenarios.dat")+"?v="+Date.now());
-  for(const url of sources){try{const r=await fetch(url);if(!r.ok)continue;const txt=(await r.text()).trim();if(!txt)continue;const data=decode(txt,CFG.scenariosKey||"");S.scns=(data.scenarios||[]).sort((a,b)=>(a.order??99)-(b.order??99));if(S.scns.length)break}catch{}}
+  for(const url of sources){try{const r=await fetch(url);if(!r.ok)continue;const txt=(await r.text()).trim();if(!txt)continue;const data=decode(txt,CFG.scenariosKey||"");S.scns=(data.scenarios||[]).sort((a,b)=>(a.order??99)-(b.order??99));S.people=data.people||[];if(S.scns.length)break}catch{}}
   if(!S.scns.length)return fail(T.noScn);
   S.sel=S.scns[0].id;S.lang=Object.keys(S.scns[0].langs)[0];renderSetup();
 })();
+function whoField(){
+  if(!S.people.length)return`<input class="inp" id="who" value="${esc(S.who)}" placeholder="${T.whoPh}" autocomplete="name">`;
+  const grp=(d,label)=>{const ps=S.people.filter(p=>p.dept===d);return ps.length?`<optgroup label="${label}">${ps.map(p=>`<option value="${esc(p.id)}" ${p.id===S.whoId?"selected":""}>${esc(p.name)}${p.market?" · "+esc(p.market):""}</option>`).join("")}</optgroup>`:""};
+  return`<select class="inp" id="whoSel"><option value="">${T.whoPick}</option>${grp("sales",T.dSales)}${grp("methodists",T.dMeth)}</select>`;
+}
 function fail(msg){$("#app").innerHTML=`<div class="note err">${esc(msg)}</div>`}
 function cur(){return S.scns.find(s=>s.id===S.sel)}
 function renderSetup(){
@@ -140,7 +145,7 @@ function renderSetup(){
   $("#app").innerHTML=`<h1>${T.pickScn}</h1><p class="lede">${T.lede}</p>
   <div class="grid"><div class="pick" role="radiogroup" aria-label="${T.pickScn}">${S.scns.map(s=>{const l=s.langs[S.lang]?S.lang:Object.keys(s.langs)[0];return`<label class="pickitem"><input type="radio" name="scn" value="${esc(s.id)}" ${s.id===S.sel?"checked":""}><span><b>${esc(s.langs[l].name)}</b><div class="g">${esc(s.langs[l].guidelines)}</div></span></label>`}).join("")}</div>
   <div class="opts"><label class="fl" for="lang">${T.lang}</label><select class="inp" id="lang">${Object.keys(sc.langs).map(l=>`<option value="${l}" ${l===S.lang?"selected":""}>${LANGS[l]||l}</option>`).join("")}</select>
-   <label class="fl" for="who">${T.who}</label><input class="inp" id="who" value="${esc(S.who)}" placeholder="${T.whoPh}" autocomplete="name">
+   <label class="fl" for="${S.people.length?"whoSel":"who"}">${T.who}</label>${whoField()}
    <label class="check"><input type="checkbox" id="showTr" ${S.showTr?"checked":""}>${T.showTr}</label>
    <button class="btn primary" id="start">${T.start}</button>
    ${S.err?`<p class="err" style="margin:12px 0 0">${esc(S.err)}</p>`:""}</div></div>`;
@@ -148,6 +153,7 @@ function renderSetup(){
 document.addEventListener("change",e=>{
   if(e.target.name==="scn"){S.sel=e.target.value;renderSetup()}
   if(e.target.id==="lang"){S.lang=e.target.value;renderSetup()}
+  if(e.target.id==="whoSel"){const p=S.people.find(x=>x.id===e.target.value);S.whoId=p?p.id:"";S.who=p?p.name:"";store.set("trainer.whoId",S.whoId);store.set("trainer.who",S.who)}
   if(e.target.id==="showTr"){S.showTr=e.target.checked;store.set("trainer.showTr",S.showTr?"1":"0")}
 });
 document.addEventListener("input",e=>{if(e.target.id==="who"){S.who=e.target.value;store.set("trainer.who",S.who)}});
@@ -171,7 +177,7 @@ async function startCall(){
   try{
     S.conv=await ElevenLabsClient.Conversation.startSession({
       agentId:CFG.agentId,connectionType:S.conn||CFG.connectionType||"webrtc",overrides,userId:S.who.trim(),
-      dynamicVariables:{admin_name:S.who.trim(),scenario_id:sc.id,scenario_lang:S.lang,scenario_dept:sc.dept||"sales"},
+      dynamicVariables:{admin_name:S.who.trim(),admin_id:S.whoId||"",scenario_id:sc.id,scenario_lang:S.lang,scenario_dept:sc.dept||"sales"},
       onConnect:({conversationId})=>{S.convId=conversationId;S.status="connected";S.start=Date.now();renderCall()},
       onDisconnect:(d)=>{S.disc=d||null;if(S.conv){S.conv=null;
         const quick=Date.now()-S.start<6000;
@@ -220,7 +226,7 @@ function fmtDate(ms){if(!ms)return"";const d=new Date(ms);return d.toLocaleDateS
 function renderResults(){R.list=null;R.err="";renderResultsList();if(S.who.trim())loadResults()}
 function renderResultsList(){
   $("#app").innerHTML=`<h1>${T.resTitle}</h1><p class="lede">${T.resLede}</p>
-  <div style="display:flex;gap:10px;flex-wrap:wrap;max-width:520px;margin-bottom:22px"><input class="inp" id="who" value="${esc(S.who)}" placeholder="${T.whoPh}" style="flex:1;min-width:200px"><button class="btn" id="resShow">${T.resShow}</button></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;max-width:520px;margin-bottom:22px"><div style="flex:1;min-width:200px">${whoField()}</div><button class="btn" id="resShow">${T.resShow}</button></div>
   <div id="rbody">${R.err?`<p class="err">${esc(R.err)}</p>`:R.list===null?(S.who.trim()?`<p class="lede">${T.resLoading}</p>`:""):!R.list.length?`<p class="lede">${T.resEmpty}</p>`:
   `<div class="rlist">${R.list.map((r,i)=>`<button class="ritem" data-r="${i}"><span class="sc ${scoreCls(r.score)}">${r.score}</span><span><b>${esc(r.scenario_name||r.scenario_id)}</b><div class="muted">${fmtDate(r.started_at)} · ${fmt(r.duration_sec||0)} · ${esc((r.lang||"").toUpperCase())}</div></span><span class="muted">›</span></button>`).join("")}</div>`}</div>`;
 }
