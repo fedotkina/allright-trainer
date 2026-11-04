@@ -71,12 +71,29 @@ label.fl{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:
 .hidden-tr{color:var(--muted);max-width:56ch}
 .guid,.g,.turn div,.pickitem b{unicode-bidi:plaintext}
 .done h1{margin-top:8px}
+header.top{align-items:center;flex-wrap:wrap}
+header.top .btn{padding:7px 12px;font-weight:500}
+.rlist{display:flex;flex-direction:column;gap:8px;max-width:820px}
+.ritem{display:grid;grid-template-columns:72px 1fr auto;gap:14px;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 16px;cursor:pointer;text-align:left;width:100%}
+.ritem:hover{border-color:var(--violet)}
+.sc{font-family:var(--display);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+.sc.hi{color:#0D7F57}.sc.mid{color:#B7791F}.sc.lo{color:var(--bad)}
+.muted{color:var(--muted);font-size:13.5px}
+.panel{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:16px 18px;margin-bottom:14px;max-width:820px}
+.panel ul{margin:6px 0 0;padding-left:18px}.panel li{margin:4px 0}
+.chk{list-style:none;padding:0;margin:0}
+.chk li{display:grid;grid-template-columns:24px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.mk{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.mk.y{background:#E2F5EC;color:#0D7F57}.mk.n{background:#FBE7EB;color:var(--bad)}.mk.u{background:var(--line);color:var(--muted)}
+.ev{font-size:13.5px;color:var(--muted);margin-top:2px;unicode-bidi:plaintext}
+.big{font-family:var(--display);font-size:56px;font-weight:700;line-height:1}
+.big small{font-size:18px;color:var(--muted);font-weight:500}
 @media (max-width:860px){.grid,.call{grid-template-columns:1fr}.side{padding:18px}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header class="top"><div class="brand">Тренажер дзвінків<span>AllRight</span></div></header>
+  <header class="top"><div class="brand">Тренажер дзвінків<span>AllRight</span></div><span style="flex:1"></span><button class="btn" id="navCall">Тренування</button><button class="btn" id="navRes">Мої результати</button></header>
   <main id="app"><p class="lede">Завантаження…</p></main>
 </div>
 <script src="config.js"></script>
@@ -95,6 +112,10 @@ const T={pickScn:"Оберіть сценарій",lang:"Мова",who:"Ваше
   noScn:"Не вдалося завантажити сценарії. Зверніться до супервайзера.",
   needName:"Вкажіть ім’я, щоб супервайзер знав, чий це дзвінок.",
   hungUp:"Мама поклала слухавку.",droppedAtStart:"Агент завершив дзвінок одразу після зʼєднання. Технічна причина для супервайзера:",dropped:"Зʼєднання обірвалося. Технічна причина для супервайзера:",
+  resTitle:"Мої результати",resLede:"Оцінки ваших дзвінків. Оцінка з’являється після того, як супервайзер запустить перевірку, зазвичай протягом дня.",
+  resShow:"Показати",resEmpty:"Оцінених дзвінків поки немає. Якщо ви щойно телефонували, загляньте пізніше.",resErr:"Не вдалося завантажити результати. Спробуйте ще раз пізніше.",
+  resBack:"← Усі результати",resSummary:"Підсумок",resImprove:"Що зробити інакше",resGood:"Що вдалося",resChecklist:"Чек-лист",resSteps:"Кроки розмови",resObj:"Заперечення",
+  resTranscript:"Розшифровка",resReason:"Справжню причину",resFound:"знайшли",resNotFound:"не знайшли",resLoading:"Завантажуємо…",resNote:"Коментарі в оцінці написані російською.",
   mom:"Мама",admin:"Ви"};
 const S={scns:[],sel:null,lang:null,who:"",showTr:true,conv:null,turns:[],start:0,mode:"",status:"",err:"",convId:""};
 const $=s=>document.querySelector(s);
@@ -133,7 +154,11 @@ document.addEventListener("input",e=>{if(e.target.id==="who"){S.who=e.target.val
 document.addEventListener("click",e=>{
   if(e.target.closest("#start"))startCall();
   if(e.target.closest("#end"))endCall();
-  if(e.target.closest("#again")){S.err="";renderSetup()}
+  if(e.target.closest("#again")||e.target.closest("#navCall")){if(S.conv)return;S.err="";if(S.scns.length)renderSetup()}
+  if(e.target.closest("#navRes")||e.target.closest("#navRes2")){if(S.conv)return;renderResults()}
+  if(e.target.closest("#resShow"))loadResults();
+  const ri=e.target.closest("[data-r]");if(ri)renderResult(+ri.dataset.r);
+  if(e.target.closest("#resBack"))renderResultsList();
 });
 
 async function startCall(){
@@ -185,7 +210,43 @@ function discText(d){if(!d)return"";if(d.reason==="user")return"";
 function finish(){clearInterval(timer);const dur=fmt((Date.now()-S.start)/1000);const dt=discText(S.disc);
   if(S.disc)console.warn("[trainer] disconnect",S.disc);
   S.conn=null;S.retried=false;
-  $("#app").innerHTML=`<div class="done"><h1>${T.doneTitle}</h1><p class="lede">${T.doneText} ${dur}.</p>${dt?`<p class="${S.disc.reason==="user"||dt===T.hungUp?"lede":"err"}">${esc(dt)}</p>`:""}${S.err?`<p class="err">${esc(S.err)}</p>`:""}<button class="btn" id="again">${T.again}</button></div>`}
+  $("#app").innerHTML=`<div class="done"><h1>${T.doneTitle}</h1><p class="lede">${T.doneText} ${dur}.</p>${dt?`<p class="${S.disc.reason==="user"||dt===T.hungUp?"lede":"err"}">${esc(dt)}</p>`:""}${S.err?`<p class="err">${esc(S.err)}</p>`:""}<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="again">${T.again}</button><button class="btn" id="navRes2">${T.resTitle}</button></div></div>`}
+
+/* ---------- Мої результати ---------- */
+const R={list:null,err:""};
+function resUrl(){return CFG.scenariosUrl&&!/XXXX/.test(CFG.scenariosUrl)?CFG.scenariosUrl:""}
+function scoreCls(v){return v>=80?"hi":v>=55?"mid":"lo"}
+function fmtDate(ms){if(!ms)return"";const d=new Date(ms);return d.toLocaleDateString("uk-UA",{day:"2-digit",month:"2-digit"})+" "+d.toLocaleTimeString("uk-UA",{hour:"2-digit",minute:"2-digit"})}
+function renderResults(){R.list=null;R.err="";renderResultsList();if(S.who.trim())loadResults()}
+function renderResultsList(){
+  $("#app").innerHTML=`<h1>${T.resTitle}</h1><p class="lede">${T.resLede}</p>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;max-width:520px;margin-bottom:22px"><input class="inp" id="who" value="${esc(S.who)}" placeholder="${T.whoPh}" style="flex:1;min-width:200px"><button class="btn" id="resShow">${T.resShow}</button></div>
+  <div id="rbody">${R.err?`<p class="err">${esc(R.err)}</p>`:R.list===null?(S.who.trim()?`<p class="lede">${T.resLoading}</p>`:""):!R.list.length?`<p class="lede">${T.resEmpty}</p>`:
+  `<div class="rlist">${R.list.map((r,i)=>`<button class="ritem" data-r="${i}"><span class="sc ${scoreCls(r.score)}">${r.score}</span><span><b>${esc(r.scenario_name||r.scenario_id)}</b><div class="muted">${fmtDate(r.started_at)} · ${fmt(r.duration_sec||0)} · ${esc((r.lang||"").toUpperCase())}</div></span><span class="muted">›</span></button>`).join("")}</div>`}</div>`;
+}
+async function loadResults(){
+  const name=S.who.trim();if(!name)return;R.list=null;R.err="";renderResultsList();
+  const url=resUrl();if(!url){R.err=T.resErr;return renderResultsList()}
+  try{const r=await fetch(url+"?action=results&name="+encodeURIComponent(name)+"&v="+Date.now());const d=await r.json();R.list=(d&&d.results)||[]}catch(e){console.error("[trainer] results",e);R.err=T.resErr}
+  renderResultsList();
+}
+function renderResult(i){
+  const r=R.list&&R.list[i];if(!r)return;
+  const mk=v=>v===true||v==="ok"||v==="handled"?`<span class="mk y">✓</span>`:v===false||v==="bad"||v==="missed"?`<span class="mk n">✕</span>`:`<span class="mk u">–</span>`;
+  const groups={};(r.metrics||[]).forEach(m=>{(groups[m.group]=groups[m.group]||[]).push(m)});
+  $("#app").innerHTML=`<button class="btn" id="resBack" style="margin-bottom:18px">${T.resBack}</button>
+  <div style="display:flex;gap:24px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px"><div class="big sc ${scoreCls(r.score)}">${r.score}<small> / 100</small></div>
+  <div><h1 style="margin:0">${esc(r.scenario_name||r.scenario_id)}</h1><div class="muted">${fmtDate(r.started_at)} · ${fmt(r.duration_sec||0)} · ${T.resReason} ${r.real_reason_found?T.resFound:T.resNotFound}</div></div></div>
+  <p class="muted" style="margin:-8px 0 16px">${T.resNote}</p>
+  <div class="panel"><h3 style="margin:0 0 6px">${T.resSummary}</h3><div>${esc(r.summary)}</div>
+   ${(r.improvements||[]).length?`<h3 style="margin:14px 0 0">${T.resImprove}</h3><ul>${r.improvements.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}
+   ${(r.strengths||[]).length?`<h3 style="margin:14px 0 0">${T.resGood}</h3><ul>${r.strengths.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}</div>
+  <div class="panel"><h3 style="margin:0 0 6px">${T.resChecklist}</h3>${Object.entries(groups).map(([g,ms])=>`<div class="muted" style="margin-top:10px;font-weight:600">${esc(g)}</div><ul class="chk">${ms.map(m=>`<li>${mk(m.passed)}<div>${esc(m.item)}${m.evidence||m.comment?`<div class="ev">${m.evidence?`«${esc(m.evidence)}» `:""}${esc(m.comment)}</div>`:""}</div></li>`).join("")}</ul>`).join("")}</div>
+  ${(r.steps||[]).length?`<div class="panel"><h3 style="margin:0 0 6px">${T.resSteps}</h3><ul class="chk">${r.steps.map(x=>`<li>${mk(x.result)}<div>${esc(x.text)}<div class="ev">${esc(x.comment)}</div></div></li>`).join("")}</ul></div>`:""}
+  ${(r.objections||[]).length?`<div class="panel"><h3 style="margin:0 0 6px">${T.resObj}</h3><ul class="chk">${r.objections.map(x=>`<li>${mk(x.result)}<div>«${esc(x.title)}»<div class="ev">${esc(x.comment)}</div></div></li>`).join("")}</ul></div>`:""}
+  ${(r.transcript||[]).length?`<details class="panel"><summary style="cursor:pointer;font-weight:600">${T.resTranscript}</summary>${r.transcript.map(t=>`<div class="turn ${t.role==="mom"?"agent":"user"}" style="margin:10px 0"><div class="sp">${t.role==="mom"?T.mom:T.admin}</div><div>${esc(t.text)}</div></div>`).join("")}</details>`:""}`;
+  scrollTo(0,0);
+}
 </script>
 </body>
 </html>
