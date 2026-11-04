@@ -24,9 +24,10 @@ window.TRAINER_CONFIG = {
   // Запасной вариант: файл scenarios.dat в этом репозитории.
   scenariosFile: "scenarios.dat",
 
-  // Тип соединения с ElevenLabs: "webrtc" (по умолчанию) или "websocket".
-  // Если в сети компании WebRTC блокируется, страница сама попробует websocket.
-  connectionType: "webrtc",
+  // Тип соединения с ElevenLabs: "websocket" или "webrtc".
+  // Нужен websocket: при WebRTC браузер не передаёт заголовок Origin,
+  // и агент с allowlist отклоняет звонок («Client did not provide the origin header»).
+  connectionType: "websocket",
 
   // Ключ, которым прототип шифрует файл сценариев. Менять только вместе с прототипом.
   scenariosKey: "allright-trainer-v1"
