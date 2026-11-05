@@ -86,6 +86,7 @@ header.top .btn{padding:7px 12px;font-weight:500}
 .mk{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
 .mk.y{background:#E2F5EC;color:#0D7F57}.mk.n{background:#FBE7EB;color:var(--bad)}.mk.u{background:var(--line);color:var(--muted)}
 .ev{font-size:13.5px;color:var(--muted);margin-top:2px;unicode-bidi:plaintext}
+.team{max-width:820px;margin:-6px 0 22px}.teambar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:6px 0 4px}.teambar span{display:block;height:100%;background:var(--violet)}
 .task{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:16px 18px;max-width:820px}
 .task.late,.task.lo{border-color:var(--bad)}.task.ok{opacity:.8}
 .task-main .muted{margin-top:4px;unicode-bidi:plaintext}
@@ -101,7 +102,7 @@ header.top .btn{padding:7px 12px;font-weight:500}
 </head>
 <body>
 <div class="wrap">
-  <header class="top"><div class="brand">Тренажер дзвінків<span>AllRight</span></div><span style="flex:1"></span><button class="btn" id="navCall">Мої завдання</button><button class="btn" id="navRes">Мої результати</button></header>
+  <header class="top"><div class="brand"><span id="brandTxt">Тренажер дзвінків</span><span>AllRight</span></div><span style="flex:1"></span><button class="btn" id="navCall">Мої завдання</button><button class="btn" id="navRes">Мої результати</button><select class="inp" id="uiLang" style="width:auto;padding:6px 8px" aria-label="Мова інтерфейсу"><option value="uk">UA</option><option value="ru">RU</option><option value="en">EN</option></select></header>
   <main id="app"><p class="lede">Завантаження…</p></main>
 </div>
 <script src="config.js"></script>
@@ -110,7 +111,7 @@ header.top .btn{padding:7px 12px;font-weight:500}
 "use strict";
 const CFG=window.TRAINER_CONFIG||{};
 const LANGS={ua:"Українська",ro:"Română",pl:"Polski",it:"Italiano",en:"English",es:"Español",sk:"Slovenčina",sr:"Srpski",he:"עברית"};
-const T={pickScn:"Оберіть сценарій",lang:"Мова",who:"Хто телефонує",whoPh:"Ім’я та прізвище",showTr:"Показувати текст розмови",start:"Зателефонувати",
+const TT={uk:{pickScn:"Оберіть сценарій",lang:"Мова",who:"Хто телефонує",whoPh:"Ім’я та прізвище",showTr:"Показувати текст розмови",start:"Зателефонувати",
   lede:"Оберіть сценарій і зателефонуйте мамі. Говоріть голосом, як у справжньому дзвінку. Розбір дзвінка надішле супервайзер.",
   known:"Що ви знаєте",end:"Завершити дзвінок",listening:"Мама слухає",speaking:"Мама говорить",connecting:"З’єднання…",
   trHidden:"Текст розмови приховано. Говоріть так, як у звичайному дзвінку.",
@@ -127,7 +128,11 @@ const T={pickScn:"Оберіть сценарій",lang:"Мова",who:"Хто �
   resShow:"Показати",resEmpty:"Оцінених дзвінків поки немає. Якщо ви щойно телефонували, загляньте пізніше.",resErr:"Не вдалося завантажити результати. Спробуйте ще раз пізніше.",
   resBack:"← Усі результати",resSummary:"Підсумок",resImprove:"Що зробити інакше",resGood:"Що вдалося",resChecklist:"Чек-лист",resSteps:"Кроки розмови",resObj:"Заперечення",
   resTranscript:"Розшифровка",resReason:"Справжню причину",resFound:"знайшли",resNotFound:"не знайшли",resLoading:"Завантажуємо…",resNote:"Коментарі в оцінці написані російською.",resAdjusted:"Бал скориговано супервайзером.",resSup:"Коментар супервайзера",
-  mom:"Мама",admin:"Ви"};
+  mom:"Мама",admin:"Ви",checks:"Що перевіряється:",teamTitle:"Команда цього тижня",teamOf:"здано {a} з {b} призначених",navTasks:"Мої завдання",navRes:"Мої результати",brand:"Тренажер дзвінків",uiLang:"Мова інтерфейсу"},
+ru:{"pickScn": "Выберите сценарий", "lang": "Язык", "who": "Кто звонит", "whoPh": "Имя и фамилия", "showTr": "Показывать текст разговора", "start": "Позвонить", "lede": "Выберите сценарий и позвоните маме. Говорите голосом, как в настоящем звонке. Разбор звонка пришлёт супервайзер.", "known": "Что вы знаете", "end": "Завершить звонок", "listening": "Мама слушает", "speaking": "Мама говорит", "connecting": "Соединение…", "trHidden": "Текст разговора скрыт. Говорите так, как в обычном звонке.", "doneTitle": "Звонок завершён", "doneText": "Запись сохранена. Супервайзер получит разговор и пришлёт разбор. Длительность:", "again": "Новый звонок", "mic": "Нет доступа к микрофону. Разрешите его в настройках браузера и попробуйте ещё раз.", "noCfg": "Тренажёр ещё не настроен: нет ID агента. Обратитесь к супервайзеру.", "noScn": "Не удалось загрузить сценарии. Обратитесь к супервайзеру.", "needName": "Укажите имя, чтобы супервайзер знал, чей это звонок.", "whoPick": "Выберите себя из списка", "dSales": "Продажи", "dMeth": "Методисты", "homeTitle": "Моё задание на неделю", "homeLede": "Сценарии, которые вам назначил супервайзер. Пройдите каждый до дедлайна и наберите 80 баллов или больше.", "pickFirst": "Выберите себя из списка, чтобы увидеть свои задания.", "noTasks": "На этой неделе заданий нет 🎉", "deadline": "Дедлайн:", "callAgain": "Пройти ещё раз", "stOk": "Сдано", "stWait": "Ждёт оценки", "stMid": "Повторить", "stLo": "Пересдать", "stTodo": "Не пройдено", "stLate": "Просрочено", "hungUp": "Мама положила трубку.", "droppedAtStart": "Агент завершил звонок сразу после соединения. Техническая причина для супервайзера:", "dropped": "Соединение оборвалось. Техническая причина для супервайзера:", "resTitle": "Мои результаты", "resLede": "Оценки ваших звонков. Оценка появляется после того, как супервайзер запустит проверку, обычно в течение дня.", "resShow": "Показать", "resEmpty": "Оценённых звонков пока нет. Если вы только что звонили, загляните позже.", "resErr": "Не удалось загрузить результаты. Попробуйте позже.", "resBack": "← Все результаты", "resSummary": "Итог", "resImprove": "Что сделать иначе", "resGood": "Что получилось", "resChecklist": "Чек-лист", "resSteps": "Шаги разговора", "resObj": "Возражения", "resTranscript": "Расшифровка", "resReason": "Настоящую причину", "resFound": "нашли", "resNotFound": "не нашли", "resLoading": "Загружаем…", "resNote": "", "resAdjusted": "Балл скорректирован супервайзером.", "resSup": "Комментарий супервайзера", "mom": "Мама", "admin": "Вы", "checks": "Что проверяется:", "teamTitle": "Команда на этой неделе", "teamOf": "сдано {a} из {b} назначенных", "navTasks": "Мои задания", "navRes": "Мои результаты", "brand": "Тренажёр звонков", "uiLang": "Язык интерфейса"},
+en:{"pickScn": "Choose a scenario", "lang": "Language", "who": "Who is calling", "whoPh": "First and last name", "showTr": "Show conversation text", "start": "Call", "lede": "Choose a scenario and call the mom. Speak out loud, like in a real call. Your supervisor will send you the review.", "known": "What you know", "end": "End call", "listening": "Mom is listening", "speaking": "Mom is speaking", "connecting": "Connecting…", "trHidden": "Conversation text is hidden. Talk as you would in a normal call.", "doneTitle": "Call ended", "doneText": "The recording is saved. Your supervisor will get the conversation and send a review. Duration:", "again": "New call", "mic": "No microphone access. Allow it in your browser settings and try again.", "noCfg": "The trainer isn't set up yet: no agent ID. Please contact your supervisor.", "noScn": "Couldn't load scenarios. Please contact your supervisor.", "needName": "Enter your name so your supervisor knows whose call this is.", "whoPick": "Pick yourself from the list", "dSales": "Sales", "dMeth": "Methodologists", "homeTitle": "My task for the week", "homeLede": "Scenarios assigned to you by your supervisor. Complete each one before the deadline with 80 points or more.", "pickFirst": "Pick yourself from the list to see your tasks.", "noTasks": "No tasks this week 🎉", "deadline": "Deadline:", "callAgain": "Try again", "stOk": "Passed", "stWait": "Waiting for review", "stMid": "Repeat", "stLo": "Retake", "stTodo": "Not done", "stLate": "Overdue", "hungUp": "Mom hung up.", "droppedAtStart": "The agent ended the call right after connecting. Technical reason for your supervisor:", "dropped": "The connection dropped. Technical reason for your supervisor:", "resTitle": "My results", "resLede": "Reviews of your calls. A review appears once your supervisor runs the check, usually within a day.", "resShow": "Show", "resEmpty": "No reviewed calls yet. If you just called, check back later.", "resErr": "Couldn't load results. Please try again later.", "resBack": "← All results", "resSummary": "Summary", "resImprove": "What to do differently", "resGood": "What went well", "resChecklist": "Checklist", "resSteps": "Conversation steps", "resObj": "Objections", "resTranscript": "Transcript", "resReason": "Real reason", "resFound": "found", "resNotFound": "not found", "resLoading": "Loading…", "resNote": "Review comments are written in Russian.", "resAdjusted": "Score adjusted by your supervisor.", "resSup": "Supervisor's comment", "mom": "Mom", "admin": "You", "checks": "What is checked:", "teamTitle": "Team this week", "teamOf": "{a} of {b} assigned passed", "navTasks": "My tasks", "navRes": "My results", "brand": "Call trainer", "uiLang": "Interface language"}};
+let UI=(()=>{try{return localStorage.getItem('trainer.ui')||'uk'}catch{return 'uk'}})();if(!TT[UI])UI='uk';
+let T=TT[UI];
 const S={people:[],plan:[],testMode:/[?&]all=1/.test(location.search),whoId:"",scns:[],sel:null,lang:null,who:"",showTr:true,conv:null,turns:[],start:0,mode:"",status:"",err:"",convId:""};
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -136,7 +141,10 @@ const fmt=s=>String(Math.floor(s/60)).padStart(2,"0")+":"+String(Math.floor(s%60
 function decode(b64,key){const bin=atob(b64.trim());const kb=new TextEncoder().encode(key);const out=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i)^kb[i%kb.length];return JSON.parse(new TextDecoder().decode(out))}
 function momName(g){const m=String(g||"").match(/^([^,.]+)/);return m?m[1].trim():T.mom}
 
-(async function boot(){
+function applyChrome(){document.documentElement.lang=UI==="uk"?"uk":UI;$("#brandTxt").textContent=T.brand;$("#navCall").textContent=T.navTasks;$("#navRes").textContent=T.navRes;const l=$("#uiLang");l.value=UI;l.setAttribute("aria-label",T.uiLang);document.title=T.brand+" AllRight"}
+document.addEventListener("change",e=>{if(e.target.id!=="uiLang")return;UI=e.target.value;T=TT[UI];try{localStorage.setItem("trainer.ui",UI)}catch{}applyChrome();
+  if(S.conv)return;if(S.view==="home")renderHome();else if(S.view==="results")renderResultsList();else if(S.view==="setup")renderSetup();else if(S.view==="done")goHome()});
+(async function boot(){applyChrome();
   S.who=store.get("trainer.who")||"";S.whoId=store.get("trainer.whoId")||"";S.showTr=store.get("trainer.showTr")!=="0";
   if(!CFG.agentId||/X{6,}/.test(CFG.agentId))return fail(T.noCfg);
   const sources=[];if(CFG.scenariosUrl&&!/XXXX/.test(CFG.scenariosUrl))sources.push(CFG.scenariosUrl);sources.push((CFG.scenariosFile||"scenarios.dat")+"?v="+Date.now());
@@ -296,7 +304,9 @@ function myTasks(){
     return{...x,sc,start,deadline,st,current:ws===thisMon};
   }).filter(Boolean).filter(t=>t.current||t.st.k!=="ok").sort((a,b)=>a.deadline-b.deadline);
 }
-function goHome(){if(S.testMode||!S.people.length){S.view="setup";return renderSetup()}S.view="home";R.list=null;R.pending=[];renderHome();if(S.whoId)loadMine(renderHome)}
+const TEAM={list:null};
+async function loadTeam(){const url=resUrl();if(!url)return;try{const r=await fetch(url+"?action=team&v="+Date.now());const d=await r.json();TEAM.list=(d&&d.passed)||[]}catch(e){TEAM.list=null}if(S.view==="home")renderHome()}
+function goHome(){if(S.testMode||!S.people.length){S.view="setup";return renderSetup()}S.view="home";R.list=null;R.pending=[];renderHome();if(S.whoId)loadMine(renderHome);loadTeam()}
 async function loadMine(cb){const url=resUrl();if(!url||!S.whoId){R.list=[];return cb&&cb()}
   try{const r=await fetch(url+"?action=results&name="+encodeURIComponent(S.who)+"&id="+encodeURIComponent(S.whoId)+"&v="+Date.now());const d=await r.json();R.list=(d&&d.results)||[];R.pending=(d&&d.pending)||[];R.err=""}catch(e){console.error("[trainer] tasks",e);R.list=[];R.err=T.resErr}
   if(S.view==="home"&&cb)cb()}
@@ -308,12 +318,18 @@ function renderHome(){
   else{const ts=myTasks();
     body=ts.length?`<div class="rlist">${ts.map(t=>{const key=t.scenarioId+"|"+t.week;const ls=Object.keys(t.sc.langs);const dl=defaultLang(t.sc);const nm=t.sc.langs[dl].name;
       return`<div class="task ${t.st.k}"><div class="task-main"><b>${esc(nm)}</b><div class="muted">${esc(t.sc.langs[dl].guidelines)}</div>
+        ${(()=>{const g=[...new Set(((t.sc.langs[dl].check||{}).items||[]).map(i=>i.group).filter(Boolean))];return g.length?`<div class="muted" style="margin-top:8px">${T.checks} ${g.map(esc).join(" · ")}</div>`:""})()}
         <div class="task-meta"><span class="tstat ${t.st.k}">${esc(t.st.t)}</span><span class="muted">${T.deadline} ${fmtD(t.deadline)}</span></div></div>
         <div class="task-act">${ls.length>1?`<select class="inp" data-tlang="${esc(key)}" aria-label="${T.lang}">${ls.map(l=>`<option value="${l}" ${l===dl?"selected":""}>${LANGS[l]||l}</option>`).join("")}</select>`:`<input type="hidden" data-tlang="${esc(key)}" value="${dl}">`}
         <button class="btn primary" data-task="${esc(key)}" style="margin-top:0">${t.st.k==="ok"?T.callAgain:T.start}</button></div></div>`}).join("")}</div>`
       :`<p class="lede">${T.noTasks}</p>`;
     if(R.err)body+=`<p class="err">${esc(R.err)}</p>`;}
-  $("#app").innerHTML=`<h1>${T.homeTitle}</h1><p class="lede">${T.homeLede}</p>
+  const meP=me_();let team="";
+  if(meP&&TEAM.list){const mon=mondayOf(Date.now());const mates=new Set(S.people.filter(p=>p.dept===meP.dept&&!p.test).map(p=>p.id));
+    const planned=S.plan.filter(x=>weekStartMs(x.week)===mon&&mates.has(x.personId));
+    const passed=planned.filter(x=>TEAM.list.some(r=>r.admin_id===x.personId&&r.scenario_id===x.scenarioId)).length;
+    if(planned.length){const pc=Math.round(passed/planned.length*100);team=`<div class="team"><div class="muted">${T.teamTitle} · ${meP.dept==="methodists"?T.dMeth:T.dSales}</div><div class="teambar"><span style="width:${pc}%"></span></div><div class="muted">${T.teamOf.replace("{a}",passed).replace("{b}",planned.length)}</div></div>`}}
+  $("#app").innerHTML=`<h1>${T.homeTitle}</h1><p class="lede">${T.homeLede}</p>${team}
    <div style="max-width:420px;margin-bottom:22px"><label class="fl" for="whoSel">${T.who}</label>${whoField()}</div>${body}
    ${S.whoId?`<label class="check" style="margin-top:18px"><input type="checkbox" id="showTr" ${S.showTr?"checked":""}>${T.showTr}</label>`:""}`;
 }

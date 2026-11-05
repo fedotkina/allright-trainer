@@ -110,6 +110,7 @@ function doPost(e) {
 function doGet(e) {
   const p = (e && e.parameter) || {};
   if (p.action === 'results') return json_(resultsFor_(p.name || '', p.id || ''));
+  if (p.action === 'team') return json_(teamWeek_());
   const files = scenarioFiles_();
   if (!files.length) return text_('');
   return text_(files[0].getBlob().getDataAsString());
@@ -153,6 +154,31 @@ function resultsFor_(name, id) {
     } catch (err) { /* пропускаем */ }
   }
   return { ok: true, results: results, pending: pending };
+}
+
+
+/* Сданные на этой неделе задания команды — для полоски прогресса на странице админов (без баллов и имён) */
+function teamWeek_() {
+  const tz = Session.getScriptTimeZone();
+  const now = new Date();
+  const dow = (Number(Utilities.formatDate(now, tz, 'u')) + 6) % 7;
+  const mondayStr = Utilities.formatDate(new Date(now.getTime() - dow * 86400000), tz, 'yyyy-MM-dd');
+  const monday = Utilities.parseDate(mondayStr, tz, 'yyyy-MM-dd').getTime();
+  const seen = {};
+  const passed = [];
+  const it = DriveApp.getFolderById(RESULTS_FOLDER_ID).getFiles();
+  while (it.hasNext()) {
+    const f = it.next();
+    if (f.getDateCreated().getTime() < monday) continue;
+    let r;
+    try { r = JSON.parse(f.getBlob().getDataAsString()); } catch (err) { continue; }
+    if (!r || !r.admin_id || (r.started_at || 0) < monday || !(r.score >= 80)) continue;
+    const k = r.admin_id + '|' + r.scenario_id;
+    if (seen[k]) continue;
+    seen[k] = 1;
+    passed.push({ admin_id: r.admin_id, scenario_id: r.scenario_id });
+  }
+  return { ok: true, passed: passed };
 }
 
 /* ---------- 3. Баллы в таблицу ---------- */
