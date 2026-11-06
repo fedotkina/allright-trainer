@@ -13,6 +13,7 @@ window.TRAINER_CONFIG = {
     en: "",
     es: "",
     sk: "",
+    cs: "",
     sr: "",
     he: "",
     ar: ""

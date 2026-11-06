@@ -110,7 +110,7 @@ header.top .btn{padding:7px 12px;font-weight:500}
 <script>
 "use strict";
 const CFG=window.TRAINER_CONFIG||{};
-const LANGS={ua:"Українська",ro:"Română",pl:"Polski",it:"Italiano",en:"English",es:"Español",sk:"Slovenčina",sr:"Srpski",he:"עברית",ar:"العربية"};
+const LANGS={ua:"Українська",ro:"Română",pl:"Polski",it:"Italiano",en:"English",es:"Español",sk:"Slovenčina",cs:"Čeština",sr:"Srpski",he:"עברית",ar:"العربية"};
 const TT={uk:{pickScn:"Оберіть сценарій",lang:"Мова",who:"Хто телефонує",whoPh:"Ім’я та прізвище",showTr:"Показувати текст розмови",start:"Зателефонувати",
   lede:"Оберіть сценарій і зателефонуйте мамі. Говоріть голосом, як у справжньому дзвінку. Розбір дзвінка надішле супервайзер.",
   known:"Що ви знаєте",end:"Завершити дзвінок",listening:"Мама слухає",speaking:"Мама говорить",connecting:"З’єднання…",
@@ -280,7 +280,7 @@ function renderResult(i){
 }
 
 /* ---------- Моє завдання ---------- */
-const MARKET_LANG=[["AR","ar"],["HE","he"],["RO","ro"],["PL","pl"],["IT","it"],["SR","sr"],["ES","es"],["SK","sk"],["CS","sk"],["EE","ua"],["EN","en"]];
+const MARKET_LANG=[["AR","ar"],["HE","he"],["RO","ro"],["PL","pl"],["IT","it"],["SR","sr"],["ES","es"],["CS","cs"],["SK","sk"],["EE","ua"],["EN","en"]];
 const DAY=864e5;
 function mondayOf(ms){const d=new Date(ms);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getTime()}
 function weekStartMs(iso){const p=iso.split("-").map(Number);return new Date(p[0],p[1]-1,p[2]).getTime()}
