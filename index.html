@@ -138,6 +138,13 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}}};
 const fmt=s=>String(Math.floor(s/60)).padStart(2,"0")+":"+String(Math.floor(s%60)).padStart(2,"0");
+async function decodeAny(txt,key){
+  txt=txt.trim();if(!txt.startsWith("GZ1:"))return decode(txt,key);
+  const bin=atob(txt.slice(4));const kb=new TextEncoder().encode(key);const u=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i)^kb[i%kb.length];
+  const plain=await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+  return JSON.parse(plain);
+}
 function decode(b64,key){const bin=atob(b64.trim());const kb=new TextEncoder().encode(key);const out=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i)^kb[i%kb.length];return JSON.parse(new TextDecoder().decode(out))}
 function momName(g){const m=String(g||"").match(/^([^,.]+)/);return m?m[1].trim():T.mom}
 
@@ -148,7 +155,7 @@ document.addEventListener("change",e=>{if(e.target.id!=="uiLang")return;UI=e.tar
   S.who=store.get("trainer.who")||"";S.whoId=store.get("trainer.whoId")||"";S.showTr=store.get("trainer.showTr")!=="0";
   if(!CFG.agentId||/X{6,}/.test(CFG.agentId))return fail(T.noCfg);
   const sources=[];if(CFG.scenariosUrl&&!/XXXX/.test(CFG.scenariosUrl))sources.push(CFG.scenariosUrl);sources.push((CFG.scenariosFile||"scenarios.dat")+"?v="+Date.now());
-  for(const url of sources){try{const r=await fetch(url);if(!r.ok)continue;const txt=(await r.text()).trim();if(!txt)continue;const data=decode(txt,CFG.scenariosKey||"");S.scns=(data.scenarios||[]).sort((a,b)=>(a.order??99)-(b.order??99));S.people=data.people||[];S.plan=data.plan||[];if(S.scns.length)break}catch{}}
+  for(const url of sources){try{const r=await fetch(url);if(!r.ok)continue;const txt=(await r.text()).trim();if(!txt)continue;const data=await decodeAny(txt,CFG.scenariosKey||"");S.scns=(data.scenarios||[]).sort((a,b)=>(a.order??99)-(b.order??99));S.people=data.people||[];S.plan=data.plan||[];if(S.scns.length)break}catch{}}
   if(!S.scns.length)return fail(T.noScn);
   S.sel=S.scns[0].id;S.lang=Object.keys(S.scns[0].langs)[0];goHome();
 })();
