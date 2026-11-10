@@ -313,7 +313,7 @@ function myTasks(){
     const sc=S.scns.find(s=>s.id===x.scenarioId);if(!sc)return null;
     const ws=weekStartMs(x.week);const start=x.at&&x.at>ws?x.at:ws;const deadline=start+2*DAY;
     const mine=res.filter(r=>r.kind!=="drill"&&r.scenario_id===x.scenarioId&&(r.started_at||0)>=start-60000);
-    const fails={};mine.forEach(r=>(r.metrics||[]).forEach(m=>{if(m.passed===false&&m.id){(fails[m.id]=fails[m.id]||{id:m.id,item:m.item,n:0}).n++}}));const weakest=Object.values(fails).sort((a,b)=>b.n-a.n)[0]||null;
+    const fails={};mine.forEach(r=>{const its=(((sc.langs[r.lang]||{}).check||{}).items)||[];(r.metrics||[]).forEach(m=>{const mid=m.id||((its.find(i=>i.item===m.item)||{}).id);if(m.passed===false&&mid){(fails[mid]=fails[mid]||{id:mid,item:m.item,n:0}).n++}})});const weakest=Object.values(fails).sort((a,b)=>b.n-a.n)[0]||null;
     const best=mine.length?Math.max(...mine.map(r=>r.score)):null;
     const waiting=pend.some(c=>!c.drill_item&&c.scenario_id===x.scenarioId&&(c.started_at||0)>=start-60000);
     let st;
