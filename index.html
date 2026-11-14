@@ -281,6 +281,7 @@ async function loadResults(){
 }
 function renderResult(i){
   const r=R.list&&R.list[i];if(!r)return;
+  if(r.transcript===undefined&&!r._trLoading&&resUrl()){r._trLoading=true;fetch(resUrl()+"?action=result&conv="+encodeURIComponent(r.conversation_id)+"&v="+Date.now()).then(x=>x.json()).then(d=>{r.transcript=(d&&d.result&&d.result.transcript)||[];if(S.view==="results")renderResult(i)}).catch(()=>{r.transcript=[]})}
   const mk=v=>v===true||v==="ok"||v==="handled"?`<span class="mk y">✓</span>`:v===false||v==="bad"||v==="missed"?`<span class="mk n">✕</span>`:`<span class="mk u">–</span>`;
   const groups={};(r.metrics||[]).forEach(m=>{(groups[m.group]=groups[m.group]||[]).push(m)});
   $("#app").innerHTML=`<button class="btn" id="resBack" style="margin-bottom:18px">${T.resBack}</button>
