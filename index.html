@@ -328,13 +328,13 @@ function myTasks(){
   if(!S.whoId)return[];
   const now=Date.now(),thisMon=mondayOf(now);
   const res=R.list||[],pend=R.pending||[];
-  return S.plan.filter(x=>x.personId===S.whoId&&weekStartMs(x.week)<=now).map(x=>{
+  return S.plan.filter(x=>x.personId===S.whoId&&weekStartMs(x.week)<=now&&!S.plan.some(y=>y!==x&&y.personId===x.personId&&y.scenarioId===x.scenarioId&&weekStartMs(y.week)>weekStartMs(x.week)&&weekStartMs(y.week)<=now)).map(x=>{
     const sc=S.scns.find(s=>s.id===x.scenarioId);if(!sc)return null;
-    const ws=weekStartMs(x.week);const start=x.at&&x.at>ws?x.at:ws;const dl=new Date(start+2*DAY);dl.setHours(23,59,59,0);const deadline=Math.min(dl.getTime(),ws+7*DAY-1000);const weekEnd=ws+7*DAY-1000;
-    const mine=res.filter(r=>r.kind!=="drill"&&r.scenario_id===x.scenarioId&&(r.started_at||0)>=start-60000);
+    const ws=weekStartMs(x.week);const start=x.at&&x.at>ws?x.at:ws;const dl=new Date(start+2*DAY);dl.setHours(23,59,59,0);const deadline=Math.min(dl.getTime(),ws+7*DAY-1000);const weekEnd=ws+7*DAY-1000;const since=x.originWeek?weekStartMs(x.originWeek):(x.carried?ws-7*DAY:start);
+    const mine=res.filter(r=>r.kind!=="drill"&&r.scenario_id===x.scenarioId&&(r.started_at||0)>=since-60000);
     const fails={};mine.forEach(r=>{const its=(((sc.langs[r.lang]||{}).check||{}).items)||[];(r.metrics||(r.fails||[]).map(f=>({...f,passed:false}))).forEach(m=>{const mid=m.id||((its.find(i=>i.item===m.item)||{}).id);if(m.passed===false&&mid){(fails[mid]=fails[mid]||{id:mid,item:m.item,n:0}).n++}})});const weakest=Object.values(fails).sort((a,b)=>b.n-a.n)[0]||null;
     const best=mine.length?Math.max(...mine.map(r=>r.score)):null;
-    const waiting=pend.some(c=>!c.drill_item&&c.scenario_id===x.scenarioId&&(c.started_at||0)>=start-60000);
+    const waiting=pend.some(c=>!c.drill_item&&c.scenario_id===x.scenarioId&&(c.started_at||0)>=since-60000);
     let st;
     if(best!=null&&best>=80)st={k:"ok",t:T.stOk+" ✓",d:best};
     else if(waiting)st={k:"wait",t:T.stWait};
