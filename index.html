@@ -153,14 +153,31 @@ function momName(g){const m=String(g||"").match(/^([^,.]+)/);return m?m[1].trim(
 function applyChrome(){document.documentElement.lang=UI==="uk"?"uk":UI;$("#brandTxt").textContent=T.brand;$("#navCall").textContent=T.navTasks;$("#navRes").textContent=T.navRes;const l=$("#uiLang");l.value=UI;l.setAttribute("aria-label",T.uiLang);document.title=T.brand+" AllRight"}
 document.addEventListener("change",e=>{if(e.target.id!=="uiLang")return;UI=e.target.value;T=TT[UI];try{localStorage.setItem("trainer.ui",UI)}catch{}applyChrome();
   if(S.conv)return;if(S.view==="home")renderHome();else if(S.view==="results")renderResultsList();else if(S.view==="setup")renderSetup();else if(S.view==="done")goHome()});
-(async function boot(){applyChrome();
+const DBG=/[?&]debug=1/.test(location.search),TM={},T0=performance.now();
+function mark(k){TM[k]=Math.round(performance.now()-T0);if(!DBG)return;let d=document.getElementById("dbg");if(!d){d=document.createElement("div");d.id="dbg";d.style.cssText="position:fixed;bottom:0;left:0;right:0;background:#111;color:#7CE0B0;font:12px monospace;padding:6px 10px;z-index:99";document.body.appendChild(d)}d.textContent="⏱ "+Object.entries(TM).map(([k,v])=>k+": "+(v/1000).toFixed(1)+" с").join(" · ")}
+function cacheGet(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch{return null}}
+function cacheSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+function applyBundle(data){S.scns=(data.scenarios||[]).sort((a,b)=>(a.order??99)-(b.order??99));S.people=data.people||[];S.plan=data.plan||[]}
+async function boot(){applyChrome();
   S.who=store.get("trainer.who")||"";S.whoId=store.get("trainer.whoId")||"";S.showTr=store.get("trainer.showTr")!=="0";
   if(!CFG.agentId||/X{6,}/.test(CFG.agentId))return fail(T.noCfg);
+  // задания и прогресс команды запрашиваем сразу, параллельно со сценариями
+  if(S.whoId&&resUrl()){const c=cacheGet("trainer.mine."+S.whoId);if(c){R.list=c.list;R.pending=c.pending}loadMine()}
+  {const c=cacheGet("trainer.team");if(c)TEAM.list=c}loadTeam();
+  const key=CFG.scenariosKey||"";let shown=false;let cached=null;
+  try{cached=localStorage.getItem("trainer.bundle")}catch{}
+  if(cached){try{applyBundle(await decodeAny(cached,key));if(S.scns.length){S.sel=S.scns[0].id;S.lang=Object.keys(S.scns[0].langs)[0];mark("из памяти");goHome();shown=true}}catch(e){}}
   const sources=[];if(CFG.scenariosUrl&&!/XXXX/.test(CFG.scenariosUrl))sources.push(CFG.scenariosUrl);sources.push((CFG.scenariosFile||"scenarios.dat")+"?v="+Date.now());
-  for(let si=0;si<sources.length;si++){const url=sources[si];try{const r=await fetch(url);if(!r.ok){console.warn("[trainer] source",url,r.status);continue}const txt=(await r.text()).trim();if(!txt)continue;const data=await decodeAny(txt,CFG.scenariosKey||"");S.scns=(data.scenarios||[]).sort((a,b)=>(a.order??99)-(b.order??99));S.people=data.people||[];S.plan=data.plan||[];S.fromBackup=si>0&&sources.length>1;if(S.scns.length)break}catch(e){console.warn("[trainer] source failed",url,e)}}
+  for(let si=0;si<sources.length;si++){const url=sources[si];try{const r=await fetch(url);if(!r.ok){console.warn("[trainer] source",url,r.status);continue}const txt=(await r.text()).trim();if(!txt)continue;
+      const isMain=si===0&&sources.length>1;
+      if(shown&&!isMain)break; // уже показали свежую копию из памяти — резервная не нужна
+      if(txt!==cached){const data=await decodeAny(txt,key);applyBundle(data);if(isMain){try{localStorage.setItem("trainer.bundle",txt)}catch{}}}
+      S.fromBackup=!isMain&&sources.length>1;mark("сценарии");
+      if(S.scns.length)break}catch(e){console.warn("[trainer] source failed",url,e)}}
   if(!S.scns.length)return fail(T.noScn);
-  S.sel=S.scns[0].id;S.lang=Object.keys(S.scns[0].langs)[0];goHome();
-})();
+  if(!shown){S.sel=S.scns[0].id;S.lang=Object.keys(S.scns[0].langs)[0];goHome()}
+  else if(!S.conv){if(S.view==="home")renderHome();else if(S.view==="setup")renderSetup()}
+}
 function whoField(){
   if(!S.people.length)return`<input class="inp" id="who" value="${esc(S.who)}" placeholder="${T.whoPh}" autocomplete="name">`;
   const grp=(d,label)=>{const ps=S.people.filter(p=>p.dept===d);return ps.length?`<optgroup label="${label}">${ps.map(p=>`<option value="${esc(p.id)}" ${p.id===S.whoId?"selected":""}>${esc(p.name)}${p.market?" · "+esc(p.market):""}</option>`).join("")}</optgroup>`:""};
@@ -181,7 +198,7 @@ function renderSetup(){
 document.addEventListener("change",e=>{
   if(e.target.name==="scn"){S.sel=e.target.value;renderSetup()}
   if(e.target.id==="lang"){S.lang=e.target.value;renderSetup()}
-  if(e.target.id==="whoSel"){const p=S.people.find(x=>x.id===e.target.value);S.whoId=p?p.id:"";S.who=p?p.name:"";store.set("trainer.whoId",S.whoId);store.set("trainer.who",S.who);if(S.view==="home"){R.list=null;R.pending=[];renderHome();loadMine(renderHome)}}
+  if(e.target.id==="whoSel"){const p=S.people.find(x=>x.id===e.target.value);S.whoId=p?p.id:"";S.who=p?p.name:"";store.set("trainer.whoId",S.whoId);store.set("trainer.who",S.who);if(S.view==="home"){const c=cacheGet("trainer.mine."+S.whoId);R.list=c?c.list:null;R.pending=c?c.pending:[];renderHome();loadMine()}}
   if(e.target.id==="showTr"){S.showTr=e.target.checked;store.set("trainer.showTr",S.showTr?"1":"0")}
 });
 document.addEventListener("input",e=>{if(e.target.id==="who"){S.who=e.target.value;store.set("trainer.who",S.who)}});
@@ -327,12 +344,14 @@ function myTasks(){
   }).filter(Boolean).filter(t=>t.current||t.st.k!=="ok").sort((a,b)=>a.deadline-b.deadline);
 }
 const TEAM={list:null};
-async function loadTeam(){const url=resUrl();if(!url)return;try{const r=await fetch(url+"?action=team&v="+Date.now());const d=await r.json();TEAM.list=(d&&d.passed)||[]}catch(e){TEAM.list=null}if(S.view==="home")renderHome()}
+async function loadTeam(){const url=resUrl();if(!url||S.teamLoading)return;S.teamLoading=true;try{const r=await fetch(url+"?action=team&v="+Date.now());const d=await r.json();TEAM.list=(d&&d.passed)||[];cacheSet("trainer.team",TEAM.list);mark("команда")}catch(e){}finally{S.teamLoading=false}if(S.view==="home")renderHome()}
 function backupNote(){return S.fromBackup?`<div class="note err" style="margin-bottom:18px">${T.backupNote}</div>`:""}
-function goHome(){if(S.testMode||!S.people.length){S.view="setup";return renderSetup()}S.view="home";R.list=null;R.pending=[];renderHome();if(S.whoId)loadMine(renderHome);loadTeam()}
-async function loadMine(cb){const url=resUrl();if(!url||!S.whoId){R.list=[];return cb&&cb()}
-  try{const r=await fetch(url+"?action=results&name="+encodeURIComponent(S.who)+"&id="+encodeURIComponent(S.whoId)+"&v="+Date.now());const d=await r.json();R.list=(d&&d.results)||[];R.pending=(d&&d.pending)||[];R.err=""}catch(e){console.error("[trainer] tasks",e);R.list=[];R.err=T.resErr}
-  if(S.view==="home"&&cb)cb()}
+function goHome(){if(S.testMode||!S.people.length){S.view="setup";return renderSetup()}S.view="home";if(R.list===null&&S.whoId){const c=cacheGet("trainer.mine."+S.whoId);if(c){R.list=c.list;R.pending=c.pending}}renderHome();if(S.whoId)loadMine();loadTeam()}
+async function loadMine(){const url=resUrl();if(!url||!S.whoId){R.list=[];if(S.view==="home")renderHome();return}
+  if(S.mineLoading===S.whoId)return;const who=S.whoId;S.mineLoading=who;
+  try{const r=await fetch(url+"?action=results&name="+encodeURIComponent(S.who)+"&id="+encodeURIComponent(who)+"&v="+Date.now());const d=await r.json();if(who!==S.whoId)return;R.list=(d&&d.results)||[];R.pending=(d&&d.pending)||[];R.err="";cacheSet("trainer.mine."+who,{list:R.list,pending:R.pending,at:Date.now()});mark("задания")}catch(e){console.error("[trainer] tasks",e);if(R.list===null)R.list=[];R.err=T.resErr}
+  finally{if(S.mineLoading===who)S.mineLoading=null}
+  if(S.view==="home")renderHome()}
 function renderHome(){
   const fmtD=ms=>new Date(ms).toLocaleDateString("uk-UA",{weekday:"short",day:"2-digit",month:"2-digit"});
   let body="";
@@ -356,6 +375,8 @@ function renderHome(){
    <div style="max-width:420px;margin-bottom:22px"><label class="fl" for="whoSel">${T.who}</label>${whoField()}</div>${body}
    ${S.whoId?`<label class="check" style="margin-top:18px"><input type="checkbox" id="showTr" ${S.showTr?"checked":""}>${T.showTr}</label>`:""}`;
 }
+
+boot();
 </script>
 </body>
 </html>
