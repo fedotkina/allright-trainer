@@ -229,7 +229,7 @@ async function startCall(){
   try{
     S.conv=await ElevenLabsClient.Conversation.startSession({
       agentId:CFG.agentId,connectionType:S.conn||CFG.connectionType||"webrtc",overrides,userId:S.who.trim(),
-      dynamicVariables:{admin_name:S.who.trim(),admin_id:S.whoId||"",drill_item:S.drill?S.drill.id:"",scenario_id:sc.id,scenario_lang:S.lang,scenario_dept:sc.dept||"sales"},
+      dynamicVariables:{admin_name:S.who.trim(),admin_id:S.whoId||"",drill_item:S.drill?S.drill.id:"",scenario_id:S.drill?sc.id+"#drill:"+S.drill.id:sc.id,scenario_lang:S.lang,scenario_dept:sc.dept||"sales"},
       onConnect:({conversationId})=>{S.convId=conversationId;S.status="connected";S.start=Date.now();renderCall()},
       onDisconnect:(d)=>{S.disc=d||null;if(S.conv){S.conv=null;
         const quick=Date.now()-S.start<6000;
